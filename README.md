@@ -76,6 +76,12 @@ python process_portraits.py 25   # Process SP25
 ### Advanced Options
 
 ```bash
+# Generate landscape PDFs instead of portrait (default)
+python process_portraits.py 23 --orientation landscape
+
+# Generate both portrait and landscape PDFs
+python process_portraits.py --all --orientation both
+
 # Disable automatic corrections
 python process_portraits.py --all --no-auto-correct
 
@@ -92,6 +98,7 @@ python process_portraits.py --all --output MyCollages
 |--------|-------------|---------|
 | `year` | Year to process (23, 24, 25) | - |
 | `--all` | Process all years | false |
+| `--orientation MODE` | PDF orientation: `portrait`, `landscape`, or `both` | portrait |
 | `--no-auto-correct` | Disable automatic corrections | false (enabled) |
 | `--threshold N` | G-R difference threshold (-10 to 0) | -10 |
 | `--output FOLDER` | Output folder for PDFs | Collages |
@@ -127,8 +134,11 @@ By default, the tool applies automatic corrections to handle ambiguous cases:
 
 ### 4. PDF Generation
 
-Creates optimized A4 portrait-mode PDFs:
-- Automatically calculates optimal grid layout
+Creates optimized A4 PDFs with flexible orientation options:
+- **Portrait mode** (default): Optimized vertical layout, more rows than columns
+- **Landscape mode**: Optimized horizontal layout, more columns than rows
+- **Both modes**: Generates separate `_portrait.pdf` and `_landscape.pdf` versions
+- Automatically calculates optimal grid layout for each orientation
 - Includes title and portrait count
 - Single page per group for easy printing
 
@@ -156,9 +166,20 @@ Each year folder gets a `portrait_groups.json` file containing:
 
 Generated in the `Collages/` folder:
 
+**Portrait mode (default):**
 - `speldesignstudenter_sp23.pdf` - Green group for 2023
 - `spelgrafikstudenter_sp23.pdf` - Orange group for 2023
 - (Same pattern for SP24 and SP25)
+
+**Landscape mode (`--orientation landscape`):**
+- `speldesignstudenter_sp23.pdf` - Green group, landscape layout
+- `spelgrafikstudenter_sp23.pdf` - Orange group, landscape layout
+
+**Both modes (`--orientation both`):**
+- `speldesignstudenter_sp23_portrait.pdf` - Portrait version
+- `speldesignstudenter_sp23_landscape.pdf` - Landscape version
+- `spelgrafikstudenter_sp23_portrait.pdf` - Portrait version
+- `spelgrafikstudenter_sp23_landscape.pdf` - Landscape version
 
 ## Adding New Years
 
