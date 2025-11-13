@@ -1,0 +1,56 @@
+# Portrait images (PNG files)
+*.png
+
+# Output PDFs
+Collages/
+*.pdf
+
+# Portrait data folders
+SP23/
+SP24/
+SP25/
+SP*/
+
+# Zip files
+*.zip
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local configuration
+.claude/
+portrait_groups.json
+
+# Archive folder (legacy scripts)
+archive/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.log

@@ -1,0 +1,57 @@
+================================================================================
+PORTRAIT CLASSIFICATION - QUICK START GUIDE
+================================================================================
+
+INSTALLATION
+------------
+1. Install Python dependencies:
+   pip install Pillow reportlab
+
+USAGE
+-----
+Process all years at once:
+   python process_portraits.py --all
+
+Process a single year:
+   python process_portraits.py 23   (for SP23)
+   python process_portraits.py 24   (for SP24)
+   python process_portraits.py 25   (for SP25)
+
+See all options:
+   python process_portraits.py --help
+
+OUTPUT
+------
+PDFs are saved to the "Collages" folder:
+   - speldesignstudenter_sp23.pdf (Green group)
+   - spelgrafikstudenter_sp23.pdf (Orange group)
+   - (same for sp24, sp25)
+
+Classification data saved to each year folder:
+   - SP23/portrait_groups.json
+   - SP24/portrait_groups.json
+   - SP25/portrait_groups.json
+
+ADDING A NEW YEAR
+-----------------
+1. Create folder:      mkdir SP26
+2. Add images to:      SP26/*.png
+3. Run processing:     python process_portraits.py 26
+4. Check output in:    Collages/speldesignstudenter_sp26.pdf
+                      Collages/spelgrafikstudenter_sp26.pdf
+
+TROUBLESHOOTING
+---------------
+If classifications are wrong, try adjusting the threshold:
+   python process_portraits.py 23 --threshold -8
+
+To disable automatic corrections:
+   python process_portraits.py 23 --no-auto-correct
+
+MORE INFORMATION
+----------------
+- Full documentation: README.md
+- Technical details: CLAUDE.md
+- Get help: python process_portraits.py --help
+
+================================================================================
