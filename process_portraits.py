@@ -13,9 +13,11 @@ Usage:
     python process_portraits.py --help
 
 Examples:
-    python process_portraits.py 23              # Process SP23 only
-    python process_portraits.py --all           # Process all years
-    python process_portraits.py 25 --threshold -8  # Custom threshold for SP25
+    python process_portraits.py 23                           # Process SP23 only (portrait mode)
+    python process_portraits.py --all                        # Process all years (portrait mode)
+    python process_portraits.py 25 --threshold -8            # Custom threshold for SP25
+    python process_portraits.py 23 --orientation landscape   # Generate landscape PDFs
+    python process_portraits.py --all --orientation both     # Generate both portrait and landscape
 """
 
 import os
@@ -26,7 +28,7 @@ import math
 import argparse
 from pathlib import Path
 from PIL import Image
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
@@ -245,6 +247,97 @@ def create_collage_pdf_portrait(image_paths, output_pdf, title):
     print(f"Created {output_pdf} with {total_images} portraits on 1 page")
 
 
+def create_collage_pdf_landscape(image_paths, output_pdf, title):
+    """
+    Create a single-page PDF collage in landscape mode.
+
+    Args:
+        image_paths: List of image file paths
+        output_pdf: Output PDF filename
+        title: Title for the PDF
+    """
+    if not image_paths:
+        print(f"No images to process for {output_pdf}")
+        return
+
+    total_images = len(image_paths)
+
+    # Use landscape A4
+    page_width, page_height = landscape(A4)
+    margin = 20
+    title_height = 30
+    spacing = 5
+
+    # Calculate available space
+    available_width = page_width - (2 * margin)
+    available_height = page_height - (2 * margin) - title_height
+
+    # Calculate optimal grid dimensions for landscape
+    # Aim for a grid that matches the page aspect ratio (width > height)
+    page_aspect = available_width / available_height
+
+    # Start with square root and adjust for landscape
+    base = math.sqrt(total_images)
+    cols = math.ceil(base * math.sqrt(page_aspect))
+    rows = math.ceil(total_images / cols)
+
+    # Ensure we don't have too many rows - keep it landscape-oriented
+    while rows > cols / 1.5:
+        cols += 1
+        rows = math.ceil(total_images / cols)
+
+    print(f"Arranging {total_images} images in {cols}x{rows} grid (landscape optimized)")
+
+    # Calculate image dimensions to fit the grid
+    img_width = (available_width - ((cols - 1) * spacing)) / cols
+
+    # Load first image to get aspect ratio
+    sample_img = Image.open(image_paths[0])
+    aspect_ratio = sample_img.height / sample_img.width
+    img_height = img_width * aspect_ratio
+
+    # Check if height fits, if not, recalculate based on height
+    total_height_needed = (img_height * rows) + ((rows - 1) * spacing)
+    if total_height_needed > available_height:
+        # Recalculate based on height constraint
+        img_height = (available_height - ((rows - 1) * spacing)) / rows
+        img_width = img_height / aspect_ratio
+
+    # Create PDF
+    c = canvas.Canvas(str(output_pdf), pagesize=landscape(A4))
+
+    # Draw title
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(margin, page_height - margin, f"{title}")
+    c.setFont("Helvetica", 9)
+    c.drawString(margin, page_height - margin - 15, f"Total: {total_images} portraits")
+
+    # Draw images in grid
+    y_start = page_height - margin - title_height
+
+    for idx, img_path in enumerate(image_paths):
+        row = idx // cols
+        col = idx % cols
+
+        x_pos = margin + (col * (img_width + spacing))
+        y_pos_img = y_start - (row * (img_height + spacing)) - img_height
+
+        try:
+            # Draw image
+            img = Image.open(img_path)
+            img_reader = ImageReader(img)
+            c.drawImage(img_reader, x_pos, y_pos_img,
+                      width=img_width, height=img_height,
+                      preserveAspectRatio=True, mask='auto')
+
+        except Exception as e:
+            print(f"Error processing {img_path}: {e}")
+
+    c.showPage()
+    c.save()
+    print(f"Created {output_pdf} with {total_images} portraits on 1 page")
+
+
 def apply_auto_corrections(year_folder, year_code, threshold=-10, verbose=True):
     """
     Automatically move ambiguous portraits from orange to green based on RGB threshold.
@@ -323,7 +416,7 @@ def apply_auto_corrections(year_folder, year_code, threshold=-10, verbose=True):
     return len(to_move)
 
 
-def process_year(year_folder, year_code, output_folder='Collages', auto_correct=True, threshold=-10):
+def process_year(year_folder, year_code, output_folder='Collages', auto_correct=True, threshold=-10, orientation='portrait'):
     """
     Main processing function: analyze portraits and create PDFs.
 
@@ -333,6 +426,7 @@ def process_year(year_folder, year_code, output_folder='Collages', auto_correct=
         output_folder: Output folder for PDF collages
         auto_correct: Apply automatic corrections for ambiguous cases
         threshold: G-R difference threshold for auto-corrections
+        orientation: PDF orientation ('portrait', 'landscape', or 'both')
     """
     print(f"\n{'#'*60}")
     print(f"Processing {year_code}")
@@ -357,21 +451,45 @@ def process_year(year_folder, year_code, output_folder='Collages', auto_correct=
     # Create PDFs
     print(f"\nGenerating PDFs...")
 
-    if results['green_group']:
-        output_pdf = output_path / f'speldesignstudenter_{year_code.lower()}.pdf'
-        create_collage_pdf_portrait(
-            results['green_group'],
-            output_pdf,
-            f'Speldesignstudenter {year_code}'
-        )
+    # Portrait mode PDFs
+    if orientation in ['portrait', 'both']:
+        if results['green_group']:
+            suffix = '' if orientation == 'portrait' else '_portrait'
+            output_pdf = output_path / f'speldesignstudenter_{year_code.lower()}{suffix}.pdf'
+            create_collage_pdf_portrait(
+                results['green_group'],
+                output_pdf,
+                f'Speldesignstudenter {year_code}'
+            )
 
-    if results['orange_group']:
-        output_pdf = output_path / f'spelgrafikstudenter_{year_code.lower()}.pdf'
-        create_collage_pdf_portrait(
-            results['orange_group'],
-            output_pdf,
-            f'Spelgrafikstudenter {year_code}'
-        )
+        if results['orange_group']:
+            suffix = '' if orientation == 'portrait' else '_portrait'
+            output_pdf = output_path / f'spelgrafikstudenter_{year_code.lower()}{suffix}.pdf'
+            create_collage_pdf_portrait(
+                results['orange_group'],
+                output_pdf,
+                f'Spelgrafikstudenter {year_code}'
+            )
+
+    # Landscape mode PDFs
+    if orientation in ['landscape', 'both']:
+        if results['green_group']:
+            suffix = '' if orientation == 'landscape' else '_landscape'
+            output_pdf = output_path / f'speldesignstudenter_{year_code.lower()}{suffix}.pdf'
+            create_collage_pdf_landscape(
+                results['green_group'],
+                output_pdf,
+                f'Speldesignstudenter {year_code}'
+            )
+
+        if results['orange_group']:
+            suffix = '' if orientation == 'landscape' else '_landscape'
+            output_pdf = output_path / f'spelgrafikstudenter_{year_code.lower()}{suffix}.pdf'
+            create_collage_pdf_landscape(
+                results['orange_group'],
+                output_pdf,
+                f'Spelgrafikstudenter {year_code}'
+            )
 
     print(f"\n{'='*60}")
     print(f"Completed processing {year_code}")
@@ -417,6 +535,13 @@ def main():
         help='Output folder for PDF collages (default: Collages)'
     )
 
+    parser.add_argument(
+        '--orientation',
+        choices=['portrait', 'landscape', 'both'],
+        default='portrait',
+        help='PDF orientation: portrait, landscape, or both (default: portrait)'
+    )
+
     args = parser.parse_args()
 
     # Determine which years to process
@@ -449,7 +574,8 @@ def main():
             year_folder,
             output_folder=args.output,
             auto_correct=not args.no_auto_correct,
-            threshold=args.threshold
+            threshold=args.threshold,
+            orientation=args.orientation
         )
 
 
